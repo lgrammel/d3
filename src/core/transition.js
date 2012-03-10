@@ -32,11 +32,11 @@ function d3_transition(groups, id, time) {
     groups.each(function(d, i, j) {
       var tweened = [],
           tweenedNames = [], // names of tweened objects to keep track of lock
-            node = this,
-            delay = groups[j][i].delay,
-            duration = groups[j][i].duration,
-            // lock is a map from tween name to { active: int, count: int }
-            lock = node.__transition__ || (node.__transition__ = {});
+          node = this,
+          delay = groups[j][i].delay,
+          duration = groups[j][i].duration,
+          // lock is a map from tween name to { active: int, count: int }
+          lock = node.__transition__ || (node.__transition__ = {});
 
       // create tween locks
       tweens.forEach(function(key, value) {
@@ -54,11 +54,8 @@ function d3_transition(groups, id, time) {
               return;
           }
           lock[key].active = id;
-        });
 
-        tweens.forEach(function(key, value) {
-          // check if tween is enabled
-          if (!(lock[key].active > id) && (tween = value.call(node, d, i))) {
+          if (tween = value.call(node, d, i)) {
             tweened.push(tween);
             tweenedNames.push(key);
           }
@@ -103,13 +100,15 @@ function d3_transition(groups, id, time) {
             if (!--lock[key].count) delete lock[key];
         });
 
-        // TODO refactor size calculation, just for proof of concept
-        var size = 0, key;
-        for (key in node.__transition__) {
-          if (node.__transition__.hasOwnProperty(key)) size++;
+        var containsTweenLock = false, key;
+        for (key in lock) {
+          if (lock.hasOwnProperty(key)) {
+              containsTweenLock = true;
+              break;
+          }
         }
 
-        if (size === 0) delete node.__transition__;
+        if (!containsTweenLock) delete node.__transition__;
 
         return 1;
       }

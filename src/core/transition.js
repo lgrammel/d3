@@ -31,7 +31,7 @@ function d3_transition(groups, id, time) {
   d3.timer(function(elapsed) {
     groups.each(function(d, i, j) {
       var tweened = [],
-          tweenedNames = [], // names of tweened objects to keep track of lock
+          locks = [], // locks ordered similar to tweened
           node = this,
           delay = groups[j][i].delay,
           duration = groups[j][i].duration,
@@ -40,24 +40,26 @@ function d3_transition(groups, id, time) {
 
       // create tween locks
       tweens.forEach(function(key, value) {
-         if (lock[key] == undefined) {
-            lock[key] = { active: 0, count: 0 }; // lock entry per tween
+         if (key in lock) {
+             ++lock[key].count;
+         } else {
+             lock[key] = { active: 0, count: 1 }; // lock entry per tween
          }
-         ++lock[key].count;
       });
 
       delay <= elapsed ? start(elapsed) : d3.timer(start, delay, time);
 
       function start(elapsed) {
         tweens.forEach(function(key, value) {
-          if (lock[key].active > id) {
+          var currentLock = lock[key];
+          if (currentLock.active > id) {
               return;
           }
-          lock[key].active = id;
+          currentLock.active = id;
 
           if (tween = value.call(node, d, i)) {
             tweened.push(tween);
-            tweenedNames.push(key);
+            locks.push(currentLock);
           }
         });
 
@@ -74,7 +76,7 @@ function d3_transition(groups, id, time) {
         var tweenExecuted = false;
         while (n > 0) {
           --n;
-          if (lock[tweenedNames[n]].active !== id) {
+          if (locks[n].active !== id) {
               continue;
           }
           tweened[n].call(node, e);

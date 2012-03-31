@@ -31,22 +31,35 @@ function d3_transition(groups, id, time) {
   d3.timer(function(elapsed) {
     groups.each(function(d, i, j) {
       var tweened = [],
+          locks = [], // locks ordered similar to tweened
           node = this,
           delay = groups[j][i].delay,
           duration = groups[j][i].duration,
-          lock = node.__transition__ || (node.__transition__ = {active: 0, count: 0});
+          // lock is a map from tween name to { active: int, count: int }
+          lock = node.__transition__ || (node.__transition__ = {});
 
-      ++lock.count;
+      // create tween locks
+      tweens.forEach(function(key, value) {
+         if (key in lock) {
+             ++lock[key].count;
+         } else {
+             lock[key] = { active: 0, count: 1 }; // lock entry per tween
+         }
+      });
 
       delay <= elapsed ? start(elapsed) : d3.timer(start, delay, time);
 
       function start(elapsed) {
-        if (lock.active > id) return stop();
-        lock.active = id;
-
         tweens.forEach(function(key, value) {
+          var currentLock = lock[key];
+          if (currentLock.active > id) {
+              return;
+          }
+          currentLock.active = id;
+
           if (tween = value.call(node, d, i)) {
             tweened.push(tween);
+            locks.push(currentLock);
           }
         });
 
@@ -56,14 +69,22 @@ function d3_transition(groups, id, time) {
       }
 
       function tick(elapsed) {
-        if (lock.active !== id) return stop();
-
         var t = (elapsed - delay) / duration,
             e = ease(t),
             n = tweened.length;
 
+        var tweenExecuted = false;
         while (n > 0) {
-          tweened[--n].call(node, e);
+          --n;
+          if (locks[n].active !== id) {
+              continue;
+          }
+          tweened[n].call(node, e);
+          tweenExecuted = true;
+        }
+
+        if (!tweenExecuted) {
+            return stop();
         }
 
         if (t >= 1) {
@@ -76,7 +97,21 @@ function d3_transition(groups, id, time) {
       }
 
       function stop() {
-        if (!--lock.count) delete node.__transition__;
+        // decrease all locks and delete when empty
+        tweens.forEach(function(key, value) {
+            if (!--lock[key].count) delete lock[key];
+        });
+
+        var containsTweenLock = false, key;
+        for (key in lock) {
+          if (lock.hasOwnProperty(key)) {
+              containsTweenLock = true;
+              break;
+          }
+        }
+
+        if (!containsTweenLock) delete node.__transition__;
+
         return 1;
       }
     });

@@ -1,7 +1,7 @@
 # See the README for installation instructions.
 
 NODE_PATH ?= ./node_modules
-JS_COMPILER = $(NODE_PATH)/uglify-js/bin/uglifyjs
+JS_COMPILER = node $(NODE_PATH)/uglify-js/bin/uglifyjs
 JS_TESTER = $(NODE_PATH)/vows/bin/vows
 
 all: \
@@ -221,12 +221,11 @@ test: all
 
 %.min.js: %.js Makefile
 	@rm -f $@
-	$(JS_COMPILER) < $< > $@
+	$(JS_COMPILER) -o $@ $<
 
 d3%.js: Makefile
 	@rm -f $@
 	cat $(filter %.js,$^) > $@
-	@chmod a-w $@
 
 install:
 	mkdir -p node_modules
@@ -235,7 +234,6 @@ install:
 package.json: d3.v2.js src/package.js
 	@rm -f $@
 	node src/package.js > $@
-	@chmod a-w $@
 
 clean:
 	rm -f d3*.js package.json

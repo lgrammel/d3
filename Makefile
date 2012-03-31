@@ -2,7 +2,7 @@
 
 NODE_PATH ?= ./node_modules
 JS_COMPILER = node $(NODE_PATH)/uglify-js/bin/uglifyjs
-JS_TESTER = $(NODE_PATH)/vows/bin/vows
+JS_TESTER = node $(NODE_PATH)/vows/bin/vows
 
 all: \
 	d3.v2.js \

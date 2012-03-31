@@ -2146,6 +2146,7 @@ function d3_transition(groups, id, time) {
   };
 
   d3.timer(function(elapsed) {
+    var hasTweens = tweens.values().length > 0; // for .remove() transitions without tweens
     groups.each(function(d, i, j) {
       var tweened = [],
           locks = [], // locks ordered similar to tweened
@@ -2200,8 +2201,8 @@ function d3_transition(groups, id, time) {
           tweenExecuted = true;
         }
 
-        if (!tweenExecuted) {
-            return stop();
+        if (hasTweens && !tweenExecuted) {
+          return stop();
         }
 
         if (t >= 1) {
